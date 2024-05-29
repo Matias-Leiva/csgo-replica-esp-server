@@ -22,11 +22,11 @@ bool bombStarted = false;
 
 unsigned long duracion = 100;
 
+const int REDLED = D5;
+const int BUTTON = D6;
 const int BUZZER = D7;
-const int REDLED = A0;
-const int BUTTON = D8;
 
-LiquidCrystal lcd(D6, D5, D3, D2, D1, D0); // Rs, E, D4, D5, D6, D7;
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 int device;
 
@@ -37,12 +37,16 @@ void timerBomb()
 
 void startWebServer()
 {
-  lcd.begin(16, 2);
-  lcd.clear();
+  lcd.init();
+  lcd.backlight();
   lcd.setCursor(0, 0);
   lcd.print("CSGO Bomb");
   lcd.setCursor(0, 1);
   lcd.print("Replica");
+
+  pinMode(REDLED, OUTPUT);
+  pinMode(BUTTON, INPUT_PULLUP);
+  pinMode(BUZZER, OUTPUT);
 
   WiFi.softAP(ssid, password);
 
@@ -51,17 +55,21 @@ void startWebServer()
   server.on("/start", HTTP_POST, handleStartGame);
 
   server.begin();
-  Serial.print("Servidor iniciado. ");
-  Serial.print("IP del punto de acceso: ");
-  Serial.println(WiFi.softAPIP());
+  Serial.print("Server started. ");
+  Serial.print("Access Point IP: ");
+  Serial.print(WiFi.softAPIP());
 
+  digitalWrite(REDLED, HIGH);
+  tone(BUZZER, 440);
   delay(1500);
 
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("Servidor started");
+  lcd.print("Server started");
   lcd.setCursor(0, 1);
   lcd.print("Connect a device");
+  digitalWrite(REDLED, LOW);
+  noTone(BUZZER);
 }
 
 void handleClientRequests()
@@ -71,6 +79,7 @@ void handleClientRequests()
 
 void handleConnect()
 {
+  digitalWrite(REDLED, HIGH);
   if (server.hasArg("plain"))
   {
     String body = server.arg("plain");
@@ -87,6 +96,7 @@ void handleConnect()
       lcd.setCursor(0, 1);
       lcd.print("Select Game Times");
       server.send(200, "application/json", "{\"connected\":\"true\"}");
+      tone(BUZZER, 440);
     }
     else
     {
@@ -97,6 +107,9 @@ void handleConnect()
   {
     server.send(400, "application/json", "{\"msg\":\"connection denied\"}");
   }
+  delay(500);
+  digitalWrite(REDLED, LOW);
+  noTone(BUZZER);
 }
 
 void handleNotFound()
@@ -106,6 +119,7 @@ void handleNotFound()
 
 void handleStartGame()
 {
+  digitalWrite(REDLED, HIGH);
   if (server.hasArg("plain"))
   {
     String body = server.arg("plain");
@@ -160,6 +174,7 @@ void handleStartGame()
         lcd.setCursor(0, 1);
         lcd.print("Press to activ");
         server.send(200, "application/json", "{\"msg\":\"Game had started\"}");
+        tone(BUZZER, 440);
       }
       else
       {
@@ -171,4 +186,7 @@ void handleStartGame()
   {
     server.send(400, "application/json", "{\"msg\":\"some error\"}");
   }
+  delay(500);
+  digitalWrite(REDLED, LOW);
+  noTone(BUZZER);
 }
